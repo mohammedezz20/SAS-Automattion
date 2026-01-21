@@ -271,7 +271,7 @@ if uploaded_file:
             color = 'background-color: #d4edda' if val == 'Success' else 'background-color: #f8d7da'
             return color
 
-        styled_df = results_df.style.applymap(color_status, subset=['status'])
+        styled_df = results_df.style.map(color_status, subset=['status'])
         st.dataframe(styled_df, use_container_width=True)
 
         # Create ZIP file
