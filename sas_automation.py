@@ -359,7 +359,7 @@ class SASFormAutomator:
         except:
             pass
 
-    def save_checkpoint(self, processed_count, total_count):
+    def save_checkpoint(self, processed_count, total_count, save_results=True):
         """Save progress checkpoint to resume later"""
         try:
             checkpoint_data = {
@@ -371,8 +371,9 @@ class SASFormAutomator:
             with open(self.checkpoint_file, 'w', encoding='utf-8') as f:
                 json.dump(checkpoint_data, f, indent=2)
             
-            # Also save results incrementally
-            self.save_results_incremental()
+            # Also save results incrementally (only if not in parallel mode)
+            if save_results:
+                self.save_results_incremental()
             
         except Exception as e:
             self.log(f"Error saving checkpoint: {str(e)}", "WARNING")
@@ -407,18 +408,25 @@ class SASFormAutomator:
     
     def save_results(self):
         """Save all results to CSV file (final save)"""
-        # Save any remaining results
-        if self.results:
-            self.save_results_incremental()
-        
-        # Also create a timestamped copy
-        filename = f"SAS_Results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-        if os.path.exists(self.results_file):
+        try:
+            if not self.results:
+                self.log(f"No results to save", "WARNING")
+                return
+            
+            # Write all results at once (overwrite mode to avoid duplicates)
+            with open(self.results_file, 'w', newline='', encoding='utf-8-sig') as f:
+                writer = csv.DictWriter(
+                    f, fieldnames=["email", "firstName", "lastName", "certificationName", "status", "message"])
+                writer.writeheader()
+                writer.writerows(self.results)
+            
+            # Also create a timestamped copy
+            filename = f"SAS_Results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
             import shutil
             shutil.copy(self.results_file, filename)
             self.log(f"Results saved to: {filename}")
-        else:
-            self.log(f"No results to save", "WARNING")
+        except Exception as e:
+            self.log(f"Error saving results: {str(e)}", "ERROR")
     
     def restart_browser_if_needed(self):
         """Restart browser periodically to prevent crashes with large datasets"""
@@ -475,9 +483,9 @@ class SASFormAutomator:
                     if result_callback:
                         result_callback(result)
                     
-                    # Save checkpoint every 50 students
+                    # Save checkpoint every 50 students (without saving results to avoid duplicates)
                     if processed_count % 50 == 0:
-                        self.save_checkpoint(processed_count, total_count)
+                        self.save_checkpoint(processed_count, total_count, save_results=False)
                         if log_callback:
                             log_callback(f"💾 Checkpoint saved: {processed_count}/{total_count}")
                 
@@ -521,9 +529,12 @@ class SASFormAutomator:
                     if log_callback:
                         log_callback(f"❌ Task error: {str(e)}", "ERROR")
         
-        # Final save
-        self.save_checkpoint(processed_count, total_count)
+        # Final save - clear any existing results file first to avoid duplicates
+        if os.path.exists(self.results_file):
+            os.remove(self.results_file)
+        
         self.results = results
+        self.save_checkpoint(processed_count, total_count, save_results=False)
         self.save_results()
         
         if log_callback:

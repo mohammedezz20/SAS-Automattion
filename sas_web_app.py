@@ -217,6 +217,9 @@ if uploaded_file:
 
                             result = automator.fill_form(student)
                             result_queue.put(('result', result))
+                            
+                            # Add result to automator's results list for CSV saving
+                            automator.results.append(result)
 
                             status_emoji = "✅" if result['status'] == "Success" else "❌"
                             log_queue.put(
@@ -227,7 +230,9 @@ if uploaded_file:
                                 automator.save_checkpoint(i, total_students)
                                 log_queue.put(f"💾 Checkpoint saved: {i}/{total_students} processed")
 
-                        # Final save
+                        # Final save - clear any existing results file first to avoid duplicates
+                        if os.path.exists(automator.results_file):
+                            os.remove(automator.results_file)
                         automator.save_checkpoint(total_students, total_students)
                         automator.save_results()
                     
