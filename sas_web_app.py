@@ -42,7 +42,7 @@ with st.sidebar:
         num_workers = st.slider(
             "Number of Parallel Browsers",
             min_value=2,
-            max_value=5,
+            max_value=10,
             value=3,
             help="More browsers = faster but uses more CPU/RAM. Recommended: 3-4"
         )
@@ -166,10 +166,10 @@ if uploaded_file:
                     def result_callback(result):
                         result_queue.put(('result', result))
                     
-                    if use_parallel and num_workers > 1:
+                    if use_parallel and num_workers >= 1:
                         # Parallel processing
                         log_queue.put(f"📊 Total students to process: {total_students}")
-                        log_queue.put(f"⚡ Parallel mode: {num_workers} browsers working simultaneously")
+                        log_queue.put(f"⚡ Parallel mode: {num_workers} browser(s) working simultaneously")
                         log_queue.put(f"💾 Checkpoint will be saved every 50 forms")
                         log_queue.put(f"⏱️ Estimated time: ~{total_students * 8 // num_workers // 60} minutes (vs ~{total_students * 10 // 60} minutes sequential)")
                         

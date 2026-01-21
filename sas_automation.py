@@ -441,7 +441,7 @@ class SASFormAutomator:
     def process_students_parallel(self, students, num_workers=3, log_callback=None, result_callback=None, stop_flag=None):
         """
         Process students in parallel using multiple browsers
-        num_workers: Number of parallel browsers (recommended: 2-5)
+        num_workers: Number of parallel browsers (range: 2-10, recommended: 3-4)
         log_callback: Function to call for logging
         result_callback: Function to call for each result
         stop_flag: Thread-safe flag to stop processing
