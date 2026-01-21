@@ -50,6 +50,15 @@ with st.sidebar:
     else:
         num_workers = 1
         st.info("🐌 Sequential processing (one browser at a time)")
+    
+    st.markdown("---")
+    use_headless = st.checkbox(
+        "Headless Mode (Faster)",
+        value=False,
+        help="Run browsers in background without GUI. Faster and uses less resources, but you won't see the browser windows."
+    )
+    if use_headless:
+        st.info("🚀 Headless mode enabled - browsers will run in background")
 
     st.markdown("---")
     st.markdown("""
@@ -148,7 +157,8 @@ if uploaded_file:
                         "", excel_path, 
                         browser_choice=browser_choice,
                         checkpoint_dir=checkpoint_dir,
-                        restart_browser_interval=100  # Restart browser every 100 forms
+                        restart_browser_interval=100,  # Restart browser every 100 forms
+                        headless=use_headless
                     )
 
                     # Store which browser was used
@@ -181,7 +191,8 @@ if uploaded_file:
                             num_workers=num_workers,
                             log_callback=log_callback,
                             result_callback=result_callback,
-                            stop_flag=stop_flag
+                            stop_flag=stop_flag,
+                            headless=use_headless
                         )
                         
                         # Put all results
