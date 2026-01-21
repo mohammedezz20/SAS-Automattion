@@ -22,13 +22,18 @@ import csv
 from datetime import datetime
 import sys
 import os
+import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 
 
 class SASFormAutomator:
-    def __init__(self, form_url, excel_file, browser_choice='auto'):
+    def __init__(self, form_url, excel_file, browser_choice='auto', checkpoint_dir=None, restart_browser_interval=100):
         """
         Initialize the automator
         browser_choice: 'auto', 'chrome', 'firefox', or 'edge'
+        checkpoint_dir: Directory to save progress checkpoints
+        restart_browser_interval: Restart browser every N forms to prevent crashes
         """
         self.form_url = form_url
         self.excel_file = excel_file
@@ -38,6 +43,14 @@ class SASFormAutomator:
         self.stop_flag = False
         self.driver = None
         self.browser_name = None
+        self.checkpoint_dir = checkpoint_dir or "checkpoints"
+        self.restart_browser_interval = restart_browser_interval
+        self.forms_processed_since_restart = 0
+        self.checkpoint_file = os.path.join(self.checkpoint_dir, "progress.json")
+        self.results_file = os.path.join(self.checkpoint_dir, "results.csv")
+        
+        # Create checkpoint directory
+        os.makedirs(self.checkpoint_dir, exist_ok=True)
 
         # Start browser automatically
         self.setup_driver()
@@ -209,8 +222,58 @@ class SASFormAutomator:
             self.log(f"Error reading Excel: {str(e)}", "ERROR")
             return []
 
-    def fill_form(self, student_data):
-        """Fill one form for a specific student"""
+    def fill_form(self, student_data, max_retries=3):
+        """Fill one form for a specific student with automatic retry"""
+        last_error = None
+        
+        for attempt in range(1, max_retries + 1):
+            try:
+                if attempt > 1:
+                    self.log(f"Retry attempt {attempt}/{max_retries} for {student_data['email']}", "WARNING")
+                    time.sleep(2)  # Wait before retry
+                
+                return self._fill_form_single(student_data)
+                
+            except Exception as e:
+                last_error = e
+                error_msg = f"Attempt {attempt}/{max_retries} failed: {str(e)}"
+                self.log(error_msg, "WARNING" if attempt < max_retries else "ERROR")
+                
+                # If browser seems dead, try to restart it
+                if attempt < max_retries:
+                    try:
+                        # Test if browser is still responsive
+                        self.driver.current_url
+                    except:
+                        self.log("Browser appears unresponsive, restarting...", "WARNING")
+                        self.close_driver()
+                        time.sleep(2)
+                        self.setup_driver()
+        
+        # All retries failed
+        error_msg = f"Failed after {max_retries} attempts: {str(last_error)}"
+        self.log(error_msg, "ERROR")
+        try:
+            if self.driver:
+                screenshot_path = os.path.join(self.checkpoint_dir, f"ERROR_{student_data['email'].replace('@', '_')}.png")
+                self.driver.save_screenshot(screenshot_path)
+        except:
+            pass
+        
+        # Increment counter even on failure
+        self.forms_processed_since_restart += 1
+        
+        return {
+            "email": student_data['email'],
+            "firstName": student_data['firstName'],
+            "lastName": student_data['lastName'],
+            "certificationName": student_data.get('certificationName', ''),
+            "status": "Failed",
+            "message": error_msg
+        }
+    
+    def _fill_form_single(self, student_data):
+        """Fill one form for a specific student (single attempt)"""
         try:
             self.log(f"\n{'='*70}")
             self.log(
@@ -222,10 +285,10 @@ class SASFormAutomator:
                 self.setup_driver()
 
             self.driver.get(student_data['certificationLink'])
-            time.sleep(3)
+            time.sleep(2)  # Reduced from 3 to 2 seconds
 
             # Wait for fields
-            WebDriverWait(self.driver, 30).until(
+            WebDriverWait(self.driver, 25).until(  # Reduced from 30 to 25 seconds
                 EC.presence_of_element_located(
                     (By.XPATH, "//input[@type='text']"))
             )
@@ -254,22 +317,25 @@ class SASFormAutomator:
             )
             self.driver.execute_script(
                 "arguments[0].scrollIntoView({block: 'center'});", radio)
-            time.sleep(0.7)
+            time.sleep(0.5)  # Reduced from 0.7 to 0.5 seconds
             self.driver.execute_script("arguments[0].click();", radio)
-            time.sleep(1)
+            time.sleep(0.5)  # Reduced from 1 to 0.5 seconds
             self.log(f"Selected badge option: {choice}")
 
             # Submit safely
-            time.sleep(1)
+            time.sleep(0.5)  # Reduced from 1 to 0.5 seconds
             submit_btn = WebDriverWait(self.driver, 15).until(
                 EC.element_to_be_clickable(
                     (By.XPATH, "//button[normalize-space()='Submit']"))
             )
             self.driver.execute_script("arguments[0].click();", submit_btn)
             self.log("Submit button clicked successfully")
-            time.sleep(4)
+            time.sleep(3)  # Reduced from 4 to 3 seconds
 
             self.log("Form submitted successfully!", "SUCCESS")
+            
+            # Increment counter for browser restart
+            self.forms_processed_since_restart += 1
 
             return {
                 "email": student_data['email'],
@@ -281,22 +347,8 @@ class SASFormAutomator:
             }
 
         except Exception as e:
-            error_msg = f"Failed: {str(e)}"
-            self.log(error_msg, "ERROR")
-            try:
-                if self.driver:
-                    self.driver.save_screenshot(
-                        f"ERROR_{student_data['email'].replace('@', '_')}.png")
-            except:
-                pass
-            return {
-                "email": student_data['email'],
-                "firstName": student_data['firstName'],
-                "lastName": student_data['lastName'],
-                "certificationName": student_data.get('certificationName', ''),
-                "status": "Failed",
-                "message": error_msg
-            }
+            # Re-raise exception to be handled by retry logic
+            raise
 
     def close_driver(self):
         """Close browser"""
@@ -307,15 +359,177 @@ class SASFormAutomator:
         except:
             pass
 
+    def save_checkpoint(self, processed_count, total_count):
+        """Save progress checkpoint to resume later"""
+        try:
+            checkpoint_data = {
+                "processed_count": processed_count,
+                "total_count": total_count,
+                "last_update": datetime.now().isoformat(),
+                "results_count": len(self.results)
+            }
+            with open(self.checkpoint_file, 'w', encoding='utf-8') as f:
+                json.dump(checkpoint_data, f, indent=2)
+            
+            # Also save results incrementally
+            self.save_results_incremental()
+            
+        except Exception as e:
+            self.log(f"Error saving checkpoint: {str(e)}", "WARNING")
+    
+    def load_checkpoint(self):
+        """Load progress checkpoint if exists"""
+        try:
+            if os.path.exists(self.checkpoint_file):
+                with open(self.checkpoint_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                self.log(f"Found checkpoint: {data['processed_count']}/{data['total_count']} processed")
+                return data.get('processed_count', 0)
+        except Exception as e:
+            self.log(f"Error loading checkpoint: {str(e)}", "WARNING")
+        return 0
+    
+    def save_results_incremental(self):
+        """Save results incrementally to CSV file (append mode)"""
+        try:
+            file_exists = os.path.exists(self.results_file)
+            with open(self.results_file, 'a', newline='', encoding='utf-8-sig') as f:
+                writer = csv.DictWriter(
+                    f, fieldnames=["email", "firstName", "lastName", "certificationName", "status", "message"])
+                if not file_exists:
+                    writer.writeheader()
+                # Write only new results
+                if self.results:
+                    writer.writerows(self.results)
+                    self.results = []  # Clear after saving to save memory
+        except Exception as e:
+            self.log(f"Error saving results: {str(e)}", "WARNING")
+    
     def save_results(self):
-        """Save results to CSV file"""
+        """Save all results to CSV file (final save)"""
+        # Save any remaining results
+        if self.results:
+            self.save_results_incremental()
+        
+        # Also create a timestamped copy
         filename = f"SAS_Results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-        with open(filename, 'w', newline='', encoding='utf-8-sig') as f:
-            writer = csv.DictWriter(
-                f, fieldnames=["email", "firstName", "lastName", "certificationName", "status", "message"])
-            writer.writeheader()
-            writer.writerows(self.results)
-        self.log(f"Results saved to: {filename}")
+        if os.path.exists(self.results_file):
+            import shutil
+            shutil.copy(self.results_file, filename)
+            self.log(f"Results saved to: {filename}")
+        else:
+            self.log(f"No results to save", "WARNING")
+    
+    def restart_browser_if_needed(self):
+        """Restart browser periodically to prevent crashes with large datasets"""
+        if self.forms_processed_since_restart >= self.restart_browser_interval:
+            self.log(f"Restarting browser after {self.forms_processed_since_restart} forms to prevent crashes...", "INFO")
+            self.close_driver()
+            time.sleep(2)
+            self.setup_driver()
+            self.forms_processed_since_restart = 0
+            self.log("Browser restarted successfully", "SUCCESS")
+
+    def process_students_parallel(self, students, num_workers=3, log_callback=None, result_callback=None, stop_flag=None):
+        """
+        Process students in parallel using multiple browsers
+        num_workers: Number of parallel browsers (recommended: 2-5)
+        log_callback: Function to call for logging
+        result_callback: Function to call for each result
+        stop_flag: Thread-safe flag to stop processing
+        """
+        if log_callback:
+            log_callback(f"🚀 Starting parallel processing with {num_workers} workers")
+        
+        results = []
+        lock = threading.Lock()
+        processed_count = 0
+        total_count = len(students)
+        
+        def process_single_student(student_data):
+            """Process a single student in a worker thread"""
+            nonlocal processed_count
+            
+            # Create a new automator instance for this worker
+            worker_automator = SASFormAutomator(
+                self.form_url,
+                self.excel_file,
+                browser_choice=self.browser_choice,
+                checkpoint_dir=self.checkpoint_dir,
+                restart_browser_interval=200  # Higher for parallel processing
+            )
+            
+            try:
+                result = worker_automator.fill_form(student_data)
+                
+                with lock:
+                    processed_count += 1
+                    results.append(result)
+                    
+                    if log_callback:
+                        status_emoji = "✅" if result['status'] == "Success" else "❌"
+                        log_callback(
+                            f"[{processed_count}/{total_count}] {status_emoji} {result['status']}: {result['email']}"
+                        )
+                    
+                    if result_callback:
+                        result_callback(result)
+                    
+                    # Save checkpoint every 50 students
+                    if processed_count % 50 == 0:
+                        self.save_checkpoint(processed_count, total_count)
+                        if log_callback:
+                            log_callback(f"💾 Checkpoint saved: {processed_count}/{total_count}")
+                
+                return result
+                
+            except Exception as e:
+                error_result = {
+                    "email": student_data['email'],
+                    "firstName": student_data['firstName'],
+                    "lastName": student_data['lastName'],
+                    "certificationName": student_data.get('certificationName', ''),
+                    "status": "Failed",
+                    "message": f"Worker error: {str(e)}"
+                }
+                with lock:
+                    processed_count += 1
+                    results.append(error_result)
+                return error_result
+            finally:
+                worker_automator.close_driver()
+        
+        # Process students in parallel
+        with ThreadPoolExecutor(max_workers=num_workers) as executor:
+            # Submit all tasks
+            future_to_student = {
+                executor.submit(process_single_student, student): student 
+                for student in students
+            }
+            
+            # Process completed tasks
+            for future in as_completed(future_to_student):
+                if stop_flag and stop_flag.is_set():
+                    if log_callback:
+                        log_callback("⏸️ Stopping parallel processing...")
+                    executor.shutdown(wait=False, cancel_futures=True)
+                    break
+                
+                try:
+                    future.result()
+                except Exception as e:
+                    if log_callback:
+                        log_callback(f"❌ Task error: {str(e)}", "ERROR")
+        
+        # Final save
+        self.save_checkpoint(processed_count, total_count)
+        self.results = results
+        self.save_results()
+        
+        if log_callback:
+            log_callback(f"🎉 Parallel processing completed: {processed_count}/{total_count}")
+        
+        return results
 
     def __del__(self):
         """Cleanup resources when object is deleted"""

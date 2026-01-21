@@ -29,6 +29,27 @@ with st.sidebar:
         index=0,
         help="Auto mode will try Chrome → Edge → Firefox in order"
     )
+    
+    st.markdown("---")
+    st.subheader("⚡ Performance")
+    use_parallel = st.checkbox(
+        "Enable Parallel Processing",
+        value=False,
+        help="Process multiple forms simultaneously (faster but uses more resources)"
+    )
+    
+    if use_parallel:
+        num_workers = st.slider(
+            "Number of Parallel Browsers",
+            min_value=2,
+            max_value=5,
+            value=3,
+            help="More browsers = faster but uses more CPU/RAM. Recommended: 3-4"
+        )
+        st.info(f"⚡ Will use {num_workers} browsers in parallel")
+    else:
+        num_workers = 1
+        st.info("🐌 Sequential processing (one browser at a time)")
 
     st.markdown("---")
     st.markdown("""
@@ -121,36 +142,95 @@ if uploaded_file:
 
             def run_automation():
                 try:
+                    # Create checkpoint directory in temp folder
+                    checkpoint_dir = os.path.join(temp_dir, "checkpoints")
                     automator = SASFormAutomator(
-                        "", excel_path, browser_choice=browser_choice)
+                        "", excel_path, 
+                        browser_choice=browser_choice,
+                        checkpoint_dir=checkpoint_dir,
+                        restart_browser_interval=100  # Restart browser every 100 forms
+                    )
 
                     # Store which browser was used
                     result_queue.put(('browser', automator.browser_name))
 
                     students = automator.read_excel()
-
-                    for i, student in enumerate(students, 1):
-                        # Check if user pressed Stop
-                        try:
-                            if not result_queue.empty():
-                                stop_signal = result_queue.get_nowait()
-                                if stop_signal == "STOP":
-                                    log_queue.put(
-                                        "⏸️ Automation stopped by user!")
-                                    return
-                        except:
-                            pass
-
-                        log_queue.put(
-                            f"[{time.strftime('%H:%M:%S')}] 🔄 Processing {i}/{len(students)}: {student['firstName']} {student['lastName']}")
-
-                        result = automator.fill_form(student)
+                    total_students = len(students)
+                    
+                    # Stop flag for parallel processing
+                    stop_flag = threading.Event()
+                    
+                    def log_callback(message):
+                        log_queue.put(f"[{time.strftime('%H:%M:%S')}] {message}")
+                    
+                    def result_callback(result):
                         result_queue.put(('result', result))
+                    
+                    if use_parallel and num_workers > 1:
+                        # Parallel processing
+                        log_queue.put(f"📊 Total students to process: {total_students}")
+                        log_queue.put(f"⚡ Parallel mode: {num_workers} browsers working simultaneously")
+                        log_queue.put(f"💾 Checkpoint will be saved every 50 forms")
+                        log_queue.put(f"⏱️ Estimated time: ~{total_students * 8 // num_workers // 60} minutes (vs ~{total_students * 10 // 60} minutes sequential)")
+                        
+                        # Store stop flag
+                        st.session_state.stop_flag_event = stop_flag
+                        
+                        results = automator.process_students_parallel(
+                            students,
+                            num_workers=num_workers,
+                            log_callback=log_callback,
+                            result_callback=result_callback,
+                            stop_flag=stop_flag
+                        )
+                        
+                        # Put all results
+                        for result in results:
+                            result_queue.put(('result', result))
+                    else:
+                        # Sequential processing (original method)
+                        log_queue.put(f"📊 Total students to process: {total_students}")
+                        log_queue.put(f"💾 Checkpoint will be saved every 50 forms")
+                        log_queue.put(f"🔄 Browser will restart every 100 forms to prevent crashes")
+                        log_queue.put(f"⏱️ Estimated time: ~{total_students * 10 // 60} minutes")
 
-                        status_emoji = "✅" if result['status'] == "Success" else "❌"
-                        log_queue.put(
-                            f"{status_emoji} {result['status']}: {student['email']}")
+                        for i, student in enumerate(students, 1):
+                            # Check if user pressed Stop
+                            try:
+                                if not result_queue.empty():
+                                    stop_signal = result_queue.get_nowait()
+                                    if stop_signal == "STOP":
+                                        log_queue.put(
+                                            "⏸️ Automation stopped by user!")
+                                        # Save checkpoint before stopping
+                                        automator.save_checkpoint(i-1, total_students)
+                                        log_queue.put(f"💾 Progress saved: {i-1}/{total_students} processed")
+                                        return
+                            except:
+                                pass
 
+                            log_queue.put(
+                                f"[{time.strftime('%H:%M:%S')}] 🔄 Processing {i}/{total_students}: {student['firstName']} {student['lastName']}")
+
+                            # Restart browser if needed (for large datasets)
+                            automator.restart_browser_if_needed()
+
+                            result = automator.fill_form(student)
+                            result_queue.put(('result', result))
+
+                            status_emoji = "✅" if result['status'] == "Success" else "❌"
+                            log_queue.put(
+                                f"{status_emoji} {result['status']}: {student['email']}")
+
+                            # Save checkpoint every 50 forms (for large datasets)
+                            if i % 50 == 0:
+                                automator.save_checkpoint(i, total_students)
+                                log_queue.put(f"💾 Checkpoint saved: {i}/{total_students} processed")
+
+                        # Final save
+                        automator.save_checkpoint(total_students, total_students)
+                        automator.save_results()
+                    
                     log_queue.put("🎉 All students processed successfully!")
                     result_queue.put(('done', None))
                 except Exception as e:
@@ -184,6 +264,8 @@ if uploaded_file:
             st.session_state.stop_flag = True
             if hasattr(st.session_state, 'result_queue'):
                 st.session_state.result_queue.put("STOP")
+            if hasattr(st.session_state, 'stop_flag_event'):
+                st.session_state.stop_flag_event.set()
             st.warning("⏸️ Stopping automation...")
             time.sleep(1)
             st.session_state.running = False
@@ -230,9 +312,13 @@ if uploaded_file:
         st.subheader("📋 Live Logs")
         logs_container = st.container()
         with logs_container:
-            # Show last 50 logs
-            display_logs = st.session_state.logs[-50:]
+            # Show last 100 logs (increased for large datasets)
+            display_logs = st.session_state.logs[-100:]
             st.code("\n".join(display_logs), language=None)
+            
+            # For large datasets, show memory optimization info
+            if len(st.session_state.logs) > 500:
+                st.info("💡 **Memory Optimization**: Logs are limited to last 100 entries. Full logs are saved in checkpoint files.")
 
     # Auto-refresh while running
     if st.session_state.running:
@@ -283,20 +369,32 @@ if uploaded_file:
             # Add results CSV
             zf.writestr("results.csv", results_df.to_csv(
                 index=False, encoding='utf-8-sig'))
-
-            # Add screenshots if any
+            
+            # Add checkpoint files if they exist
             if hasattr(st.session_state, 'temp_dir') and os.path.exists(st.session_state.temp_dir):
-                screenshot_count = 0
-                for file in os.listdir(st.session_state.temp_dir):
-                    if file.endswith(".png"):
-                        file_path = os.path.join(
-                            st.session_state.temp_dir, file)
-                        zf.write(file_path, f"screenshots/{file}")
-                        screenshot_count += 1
+                checkpoint_dir = os.path.join(st.session_state.temp_dir, "checkpoints")
+                if os.path.exists(checkpoint_dir):
+                    # Add checkpoint JSON
+                    checkpoint_file = os.path.join(checkpoint_dir, "progress.json")
+                    if os.path.exists(checkpoint_file):
+                        zf.write(checkpoint_file, "checkpoints/progress.json")
+                    
+                    # Add incremental results CSV
+                    results_file = os.path.join(checkpoint_dir, "results.csv")
+                    if os.path.exists(results_file):
+                        zf.write(results_file, "checkpoints/results.csv")
 
-                if screenshot_count > 0:
-                    st.info(
-                        f"📸 {screenshot_count} screenshots included in download")
+                    # Add screenshots if any
+                    screenshot_count = 0
+                    for file in os.listdir(checkpoint_dir):
+                        if file.endswith(".png"):
+                            file_path = os.path.join(checkpoint_dir, file)
+                            zf.write(file_path, f"screenshots/{file}")
+                            screenshot_count += 1
+
+                    if screenshot_count > 0:
+                        st.info(
+                            f"📸 {screenshot_count} screenshots included in download")
 
         zip_buffer.seek(0)
 
