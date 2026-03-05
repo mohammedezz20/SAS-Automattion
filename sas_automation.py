@@ -63,7 +63,11 @@ class SASFormAutomator:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         log_message = f"[{timestamp}] {level}: {message}"
         self.logs.append(log_message)
-        print(log_message)
+        # Safe print for Windows (charmap can't encode Unicode symbols)
+        try:
+            print(log_message)
+        except UnicodeEncodeError:
+            print(log_message.encode('ascii', errors='replace').decode('ascii'))
 
     def setup_driver(self):
         """Setup and launch browser - tries multiple browsers if auto mode"""
@@ -167,12 +171,12 @@ class SASFormAutomator:
                 except:
                     pass
 
-                self.log(f"✓ Browser setup successful: {self.browser_name}")
+                self.log(f"[OK] Browser setup successful: {self.browser_name}")
                 return
 
             except Exception as e:
                 last_error = e
-                self.log(f"✗ Failed to launch {browser}: {str(e)}", "WARNING")
+                self.log(f"[X] Failed to launch {browser}: {str(e)}", "WARNING")
                 continue
 
         # If all browsers failed
@@ -432,20 +436,54 @@ class SASFormAutomator:
             self.driver.execute_script("arguments[0].click();", submit_btn)
             self.log("Submit button clicked successfully")
             
-            # Wait for submission confirmation (wait for page change or success message)
-            # Reduced wait time - just check if form is submitted
+            # Wait for submission confirmation - SAS redirects to a "search" page that shows
+            # "No event found" / "Course Evaluation Search Facility is not in service"
+            # even when submission succeeded. Treat that page as success.
+            def _is_submission_done(driver):
+                try:
+                    url = driver.current_url or ""
+                    body = driver.page_source.lower() if driver.page_source else ""
+                    # URL changed to evals search page (SAS success redirect)
+                    if "evals/app/search" in url or "search?message=" in url:
+                        return True
+                    # Page shows "no event found" or "not in service" = success redirect
+                    if "no event found" in body or "course evaluation search facility is not in service" in body:
+                        return True
+                    if "success" in body or "submitted" in body:
+                        return True
+                    # Left the form URL = redirect happened
+                    if url != student_data['certificationLink']:
+                        return True
+                    return False
+                except Exception:
+                    return False
+
             try:
-                WebDriverWait(self.driver, 5).until(
-                    lambda d: d.current_url != student_data['certificationLink'] or 
-                    "success" in d.page_source.lower() or
-                    "submitted" in d.page_source.lower()
-                )
-            except:
-                # If no clear confirmation, just wait a bit
-                time.sleep(1)
+                WebDriverWait(self.driver, 12).until(_is_submission_done)
+                self.log("Submission confirmed (redirect or success page detected)")
+            except Exception:
+                # Timeout - still treat as success if we see the known "success" page
+                try:
+                    if _is_submission_done(self.driver):
+                        self.log("Submission confirmed after wait")
+                    else:
+                        time.sleep(2)
+                except Exception:
+                    time.sleep(1)
 
             self.log("Form submitted successfully!", "SUCCESS")
-            
+
+            # Wait 5 sec so success page is fully visible, then close browser and open a new one
+            time.sleep(5)
+
+            try:
+                self.close_driver()
+                self.driver = None
+                time.sleep(1)
+                self.setup_driver()
+            except Exception:
+                pass
+
             # Increment counter for browser restart
             self.forms_processed_since_restart += 1
 
