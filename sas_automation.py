@@ -111,6 +111,11 @@ class SASFormAutomator:
                     options.add_argument("--disable-renderer-backgrounding")
                     options.add_argument("--disable-notifications")
                     options.add_argument("--disable-infobars")
+                    # Extra memory / cache limits (batch automation)
+                    options.add_argument("--memory-pressure-off")
+                    options.add_argument("--js-flags=--max-old-space-size=256")
+                    options.add_argument("--disk-cache-size=1")
+                    options.add_argument("--media-cache-size=1")
 
                     service = ChromeService(ChromeDriverManager().install())
                     self.driver = webdriver.Chrome(
@@ -157,6 +162,10 @@ class SASFormAutomator:
                     options.add_argument("--disable-background-timer-throttling")
                     options.add_argument("--disable-notifications")
                     options.add_argument("--disable-infobars")
+                    options.add_argument("--memory-pressure-off")
+                    options.add_argument("--js-flags=--max-old-space-size=256")
+                    options.add_argument("--disk-cache-size=1")
+                    options.add_argument("--media-cache-size=1")
 
                     service = EdgeService(
                         EdgeChromiumDriverManager().install())
@@ -214,9 +223,9 @@ class SASFormAutomator:
 
             self.log(f"Column mapping: {col_map}")
 
-            for _, row in df.iterrows():
-                # Skip empty rows
-                if row.isna().all():
+            # Faster than iterrows for large sheets
+            for row in df.to_dict("records"):
+                if pd.Series(row).isna().all():
                     continue
 
                 # Read data with None protection
@@ -348,9 +357,10 @@ class SASFormAutomator:
         except:
             pass
         
-        # Increment counter even on failure
+        # Increment counter even on failure (periodic restart for long runs / parallel workers)
         self.forms_processed_since_restart += 1
-        
+        self.restart_browser_if_needed()
+
         return {
             "email": student_data['email'],
             "firstName": student_data['firstName'],
@@ -439,22 +449,26 @@ class SASFormAutomator:
             # Wait for submission confirmation - SAS redirects to a "search" page that shows
             # "No event found" / "Course Evaluation Search Facility is not in service"
             # even when submission succeeded. Treat that page as success.
+            form_url = student_data["certificationLink"]
+
             def _is_submission_done(driver):
                 try:
                     url = driver.current_url or ""
-                    body = driver.page_source.lower() if driver.page_source else ""
-                    # URL changed to evals search page (SAS success redirect)
+                    # Cheap checks first (avoid full page_source on every poll)
                     if "evals/app/search" in url or "search?message=" in url:
                         return True
-                    # Page shows "no event found" or "not in service" = success redirect
-                    if "no event found" in body or "course evaluation search facility is not in service" in body:
+                    if url != form_url:
                         return True
-                    if "success" in body or "submitted" in body:
-                        return True
-                    # Left the form URL = redirect happened
-                    if url != student_data['certificationLink']:
-                        return True
-                    return False
+                    body = (driver.page_source or "").lower()
+                    return any(
+                        x in body
+                        for x in (
+                            "no event found",
+                            "course evaluation search facility is not in service",
+                            "success",
+                            "submitted",
+                        )
+                    )
                 except Exception:
                     return False
 
@@ -473,19 +487,15 @@ class SASFormAutomator:
 
             self.log("Form submitted successfully!", "SUCCESS")
 
-            # Wait 5 sec so success page is fully visible, then close browser and open a new one
-            time.sleep(5)
-
+            # Clear document state without full browser teardown (restart_browser_interval handles periodic restarts)
             try:
-                self.close_driver()
-                self.driver = None
-                time.sleep(1)
-                self.setup_driver()
+                self.driver.get("about:blank")
             except Exception:
                 pass
+            time.sleep(0.5)
 
-            # Increment counter for browser restart
             self.forms_processed_since_restart += 1
+            self.restart_browser_if_needed()
 
             return {
                 "email": student_data['email'],

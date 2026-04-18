@@ -1,0 +1,214 @@
+﻿email,firstName,lastName,certificationName,status,message
+abdelrahmanhamissa9@gmail.com,Abdelrahman,Abdelhamid Ali Hamissa,Business Analytics,Success,Completed successfully
+mastrone252@gmail.com,Abdelrahman,Ahmed abdelrahman herdan,Business Analytics,Success,Completed successfully
+abdallasemari@gmail.com,ABDALLA,ELSAYED MOHAMED ALI MOHAMED HASSAN SEMARI,Business Analytics,Success,Completed successfully
+aalsalam482@gmail.com,Abdelslam,Mohamed tag eldin,Business Analytics,Success,Completed successfully
+elgalalah2022@gmail.com,Adel,Mohamed Mohamed Mohi,Business Analytics,Success,Completed successfully
+beboezz934@gmail.com,Aber,Ezz eldin Ahmed,Business Analytics,Success,Completed successfully
+elsharkawya99@yahoo.com,Ahmed,Abdelgabar Mohamed Elsharkawy,Business Analytics,Success,Completed successfully
+dr_a_abdelhakim@yahoo.com,Ahmed,AbdelhakimIbrahim ElSayed,Business Analytics,Success,Completed successfully
+ahmed.a.elgendi@gmail.com,Ahmed,Abdelrahman Ahmed El Gendi,Business Analytics,Success,Completed successfully
+ahmedalm63@gmail.com,Ahmed,Bassiony Nasser,Business Analytics,Success,Completed successfully
+mistravel.zakazik@yahoo.com,Ahmed,Gamal Mohamed,Business Analytics,Success,Completed successfully
+ahmdfathi029@gmail.com,Ahmed,Fathi Abdelwahab,Business Analytics,Success,Completed successfully
+ahshalaby2005@gmail.com,Ahmed,Hamdy Abd-Elmonem Shalaby,Business Analytics,Success,Completed successfully
+Ahmad.Hassiebo@gmail.com,Ahmed,Helal Hassan Youssef Hassibo,Business Analytics,Success,Completed successfully
+ahmedhany372@gmail.com,Ahmed,Hany Naga Elsharawy,Business Analytics,Success,Completed successfully
+a7madmaged99@gmail.com,Ahmed,Maged Moustafa Ahmed,Business Analytics,Success,Completed successfully
+ahmedmoaaty@gmail.com,Ahmed,Mohamed AbdElmoaaty Ali,Business Analytics,Success,Completed successfully
+amahabdalah@gmail.com,Ahmed,Mahmoud Mohamed Mahmoud Abdallah,Business Analytics,Success,Completed successfully
+mido42444@gmail.com,Ahmed,Mohamed Maghraby Mohamed,Business Analytics,Success,Completed successfully
+ahmed.moheb24@gmail.com,Ahmed,Moheb El Din Mousa,Business Analytics,Success,Completed successfully
+Ahmed.mostafa.hassanin@gmail.com,Ahmed,Mostafa Sayed,Business Analytics,Success,Completed successfully
+ghlyahmed@yahoo.com,Ahmed,Mohamed Nageb,Business Analytics,Success,Completed successfully
+asamir2468@gmail.com,Ahmed,Samir Abdullah Ibrahim Ghanem,Business Analytics,Success,Completed successfully
+akmalselim7702@gmail.com,Akmal,Magdy,Business Analytics,Success,Completed successfully
+dr.ali2030@yahoo.com,Aly,Abdelhamid Abdelfatah,Business Analytics,Success,Completed successfully
+amirakamel284@gmail.com,Amira,Kamel belal,Business Analytics,Success,Completed successfully
+amr.ezzeldin21@gmail.com,Amr,Nabil Ahmed Mohamed,Business Analytics,Success,Completed successfully
+amrhan29@gmail.com,Amr,Mohamed Hanfy,Business Analytics,Success,Completed successfully
+amrtolba89@gmail.com,Amr,Tolba Abdulfattah Elbasyouny,Business Analytics,Success,Completed successfully
+areframadan@gmail.com,Aref,Ramadan Mahmoud,Business Analytics,Success,Completed successfully
+ahmadmadyaus@gmail.com,Ahmed,Refaat Mohamed,Business Analytics,Success,Completed successfully
+farah.malak.omar@gmail.com,Azza,Gamal Mohamed Roshdy Zaki Kamel,Business Analytics,Success,Completed successfully
+BAHERAbdullah@yahoo.com,Baher,Hussein Mohamed Abdullah,Business Analytics,Success,Completed successfully
+basmaelhanafy209@gmail.com,Basma,Mohamed Abdelaziz,Business Analytics,Success,Completed successfully
+basma.kader@gmail.com,Basma,Abdelkader Ali,Business Analytics,Success,Completed successfully
+Bassemnabawy2020@gmail.com,Bassem,Nabawy And Elfatah Qabel,Business Analytics,Success,Completed successfully
+bassemshaker22@gmail.com,Bassem,Mamdouh Shaker,Business Analytics,Success,Completed successfully
+dodoomer369@gmail.com,Doaa,Omar Abd el Aziz Rashed,Business Analytics,Success,Completed successfully
+engygharib2013@gmail.com,ENGY,GHARIB TAHA IBRAHIM NASR,Business Analytics,Success,Completed successfully
+es_megahed@hotmail.com,Eslam,Ali Ibrahem Megahed,Business Analytics,Success,Completed successfully
+elmohnds81@gmail.com,Ashraf,Beyali Abdelaziz Elbeyali,Business Analytics,Failed,"Failed after 3 attempts: Message: stale element reference: stale element not found
+  (Session info: chrome=147.0.7727.102); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#stale-element-reference-exception
+Stacktrace:
+0   chromedriver                        0x0000000100a93abc cxxbridge1$str$ptr + 3192864
+1   chromedriver                        0x0000000100a8ba8c cxxbridge1$str$ptr + 3160048
+2   chromedriver                        0x00000001005577c0 _RNvCs10ygTOo3JCa_7___rustc35___rust_no_alloc_shim_is_unstable_v2 + 75348
+3   chromedriver                        0x0000000100568f80 _RNvCs10ygTOo3JCa_7___rustc35___rust_no_alloc_shim_is_unstable_v2 + 146964
+4   chromedriver                        0x0000000100568030 _RNvCs10ygTOo3JCa_7___rustc35___rust_no_alloc_shim_is_unstable_v2 + 143044
+5   chromedriver                        0x000000010055e2a4 _RNvCs10ygTOo3JCa_7___rustc35___rust_no_alloc_shim_is_unstable_v2 + 102712
+6   chromedriver                        0x000000010055e3b0 _RNvCs10ygTOo3JCa_7___rustc35___rust_no_alloc_shim_is_unstable_v2 + 102980
+7   chromedriver                        0x000000010055ca2c _RNvCs10ygTOo3JCa_7___rustc35___rust_no_alloc_shim_is_unstable_v2 + 96448
+8   chromedriver                        0x000000010055ff28 _RNvCs10ygTOo3JCa_7___rustc35___rust_no_alloc_shim_is_unstable_v2 + 110012
+9   chromedriver                        0x00000001005e03c4 _RNvCs10ygTOo3JCa_7___rustc35___rust_no_alloc_shim_is_unstable_v2 + 635480
+10  chromedriver                        0x00000001005df448 _RNvCs10ygTOo3JCa_7___rustc35___rust_no_alloc_shim_is_unstable_v2 + 631516
+11  chromedriver                        0x0000000100594e50 _RNvCs10ygTOo3JCa_7___rustc35___rust_no_alloc_shim_is_unstable_v2 + 326884
+12  chromedriver                        0x0000000100a51248 cxxbridge1$str$ptr + 2920364
+13  chromedriver                        0x0000000100a54a28 cxxbridge1$str$ptr + 2934668
+14  chromedriver                        0x0000000100a371fc cxxbridge1$str$ptr + 2813792
+15  chromedriver                        0x0000000100a552a8 cxxbridge1$str$ptr + 2936844
+16  chromedriver                        0x0000000100a28024 cxxbridge1$str$ptr + 2751880
+17  chromedriver                        0x0000000100a7a988 cxxbridge1$str$ptr + 3090156
+18  chromedriver                        0x0000000100a7ab04 cxxbridge1$str$ptr + 3090536
+19  chromedriver                        0x0000000100a8b6e4 cxxbridge1$str$ptr + 3159112
+20  libsystem_pthread.dylib             0x000000019b86bc08 _pthread_start + 136
+21  libsystem_pthread.dylib             0x000000019b866ba8 thread_start + 8
+"
+eslamelkilany2020@gmail.com,Eslam,Ahmed Mohamed Ibrahim,Business Analytics,Success,Completed successfully
+esraa.elchemi@icloud.com,Esraa,Hussein Sayed Salem Elchemi,Business Analytics,Success,Completed successfully
+es_wakeel@hotmail.com,Esmail,Mostafa Esmail,Business Analytics,Success,Completed successfully
+fayrouz111mm@icloud.com,Fayrouz,Elshafaee Ibrahim,Business Analytics,Success,Completed successfully
+jkhatab1981@gmail.com,Gamal,Salah,Business Analytics,Success,Completed successfully
+halahamedy2018@gmail.com,Hala,Hamdy Mohamed kemel,Business Analytics,Success,Completed successfully
+allihanan14@gmail.com,Hanan,Ali Mahmoud Ali,Business Analytics,Success,Completed successfully
+heba.mna@gmail.com,Heba,Mohamed Nageb,Business Analytics,Success,Completed successfully
+hosamhindawy1@gmail.com,Hosam,Mohamed Hindawy Mahmoud,Business Analytics,Success,Completed successfully
+hiadyhany75@gmail.com,Howida,fakhry zaki,Business Analytics,Success,Completed successfully
+kareemheshamali@gmail.com,Kareem,Hesham Ali Mohamed,Business Analytics,Success,Completed successfully
+jula_elghandour@hotmail.com,Jula,Anis El Ghandour,Business Analytics,Success,Completed successfully
+eng_ibrahemragab@yahoo.com,Ibrahim,Ragab Ramadan Darder Moustafa,Business Analytics,Success,Completed successfully
+kbakr00@gmail.com,khaled,abd elrahman bakr,Business Analytics,Success,Completed successfully
+khaldahmdbdalmqswd@gmail.com,Khaled,Ahmed Abdelmaqsoud,Business Analytics,Success,Completed successfully
+khaledahmed.co@gmail.com,Khaled,Ahmed Mohamed Khaled,Business Analytics,Success,Completed successfully
+kholoudnabil123@gmail.com,Kholoud,nabil mahmoud mohamed morsi,Business Analytics,Success,Completed successfully
+khaled.yossry520@gmail.com,Khaled,yossry ragab ahmed,Business Analytics,Success,Completed successfully
+Kholood.fouad22@gmail.com,Kholood,Fouad sadek Mohamed Nassar,Business Analytics,Success,Completed successfully
+mahdysabbah11@gmail.com,Mahdy,sabah morsy mahdy,Business Analytics,Success,Completed successfully
+eissamahmoud703@gmail.com,Mahmoud,Mohamed Abdelmotaleb,Business Analytics,Success,Completed successfully
+makmaillink@gmail.com,Mahmoud,Ahmed Kamel,Business Analytics,Success,Completed successfully
+mahmoud_abomalek@yahoo.com,Mahmoud,Saied Abd Elrahman Hussen,Business Analytics,Success,Completed successfully
+mramadan002@gmail.com,Mahmoud,Mohamed Ibrahim,Business Analytics,Success,Completed successfully
+mahmoud.gaafar90@hotmail.com,Mahmoud,Mohamed Gaafar,Business Analytics,Success,Completed successfully
+mamdouhyassin256@gmail.com,Mamdouh,abdel elnasser yassin mohamed,Business Analytics,Success,Completed successfully
+mero.adam88@gmail.com,Manar,Gabr mohamed mahmoud,Business Analytics,Success,Completed successfully
+maiadafouad87@yahoo.com,Maiada,Fouad Abdelfatah,Business Analytics,Success,Completed successfully
+metwallyrady@gmail.com,Metwaly,Rady Ahmed tantawy,Business Analytics,Success,Completed successfully
+M.Boushra92@gmail.com,Mina,Mina Boushra Wassif,Business Analytics,Success,Completed successfully
+momensedikedu@gmail.com,MOAMEN,AHMED SEDIK YOUSSEF RAGAB,Business Analytics,Success,Completed successfully
+mhamadanwar12345@gmail.com,Mohamad,anwar hassan nooh,Business Analytics,Success,Completed successfully
+mohamed.rizk1010@yahoo.com,Mohamed,Abdelrahman Sayed Mahmoud Rizk,Business Analytics,Success,Completed successfully
+dizny24@gmail.com,Mohamed,Abdelsamie Metwalli Abdelsamie,Business Analytics,Success,Completed successfully
+mohamed.abdelrahman@ferrometalco.com,Mohamed,Ahmed Abdelrahman,Business Analytics,Success,Completed successfully
+mohamed.hamama@gmail.com,Mohamed,Ahmed Mohamed Mohamed Hamama,Business Analytics,Success,Completed successfully
+mody83said@gmail.com,Mohamed,Elsayed Abdelhamid,Business Analytics,Success,Completed successfully
+mohamedadlykhalil@gmail.com,Mohamed,Elsayed Adly Ahmed,Business Analytics,Success,Completed successfully
+ME.Hussen@nadec.com.sa,Mohamed,Essam Sobhi,Business Analytics,Success,Completed successfully
+faresmohamed011@gmail.com,Mohamed,Fares,Business Analytics,Success,Completed successfully
+mhshg1983@gmail.com,Mohamed,Hasanein Salah,Business Analytics,Success,Completed successfully
+mohamed_elkharadly@hotmail.com,Mohamed,Hussein Basyouni Elkharadly,Business Analytics,Success,Completed successfully
+marina.selwanees@gmail.com,marina,awad selwanes ghaly,Business Analytics,Success,Completed successfully
+magdy90907@gmail.com,Mohamed,Magdy Youssef,Business Analytics,Success,Completed successfully
+DR.MOHAMED.ALDEERY@GMAIL.COM,Mohamed,Mahmoud Ali Mohamed,Business Analytics,Success,Completed successfully
+mohamedmagdyyy501@gmail.com,Mohamed,Magdy Mohamed,Business Analytics,Success,Completed successfully
+mohamedmohie19@gmail.com,Mohamed,Mohie Eldin Sahy Elaref,Business Analytics,Success,Completed successfully
+momorehab001@icloud.com,Mohamed,mostafa Abdelkawy mohamed Rehab,Business Analytics,Success,Completed successfully
+mohamedmostafa8595@gmail.com,MOHAMED,MOSTAFA MOHAMED MAHMOUD,Business Analytics,Success,Completed successfully
+mohamed.tag.mba@gmail.com,Mohamed,Mostafa Zaki Tag,Business Analytics,Success,Completed successfully
+mragaee@gmail.com,Mohamed,Ragaee Hassan,Business Analytics,Success,Completed successfully
+mohamedkasem1981@gmail.com,Mohamed,Mahmoud Mohamed AlSayed,Business Analytics,Success,Completed successfully
+sanasly82@gmail.com,Mohamed,sayed abdou mohamed ashour,Business Analytics,Success,Completed successfully
+MOHAMEDTOLBZ1989@YAHOO.COM,Mohamed,Tolba Fouad,Business Analytics,Success,Completed successfully
+Elyaboushanab@gmail.com,Mohamed,Saad Ragab Ahmed AbouShanab,Business Analytics,Success,Completed successfully
+muhamadnasr66@gmail.com,Mohammad,abd elrahim Nasr abd elrahim,Business Analytics,Success,Completed successfully
+mme_3m@yahoo.com,Mohammed,Mahfouz Mohammed Elsayed Elnaggar,Business Analytics,Success,Completed successfully
+drmzuhairr@gmail.com,Mohammed,zuhair abueida,Business Analytics,Success,Completed successfully
+jannahahmed586@gmail.com,Mona,Mohamed Abd El fatah Ali,Business Analytics,Success,Completed successfully
+e.mostafa0100@gmail.com,Mostafa,Hesham Mostafa,Business Analytics,Success,Completed successfully
+analystmo82@gmail.com,Mohamed,Zakaria Mohamed meselhi,Business Analytics,Success,Completed successfully
+mmhh0388@gmail.com,Muhammad,hamdy ahmed elmeniza,Business Analytics,Success,Completed successfully
+MUPREP2302@GMAIL.COM,Nabil,Hamdy Mohamed Mohamed,Business Analytics,Success,Completed successfully
+nada_osama259@hotmail.com,Nada,Osama Hassan Mohamed Henegel,Business Analytics,Success,Completed successfully
+nada.yasser65920@gmail.com,Nada,Yasser,Business Analytics,Success,Completed successfully
+nael8710@gmail.com,Nael,Mahamed Ahama,Business Analytics,Success,Completed successfully
+m_mahane@yahoo.com,Mostafa,Mohamed Mahane,Business Analytics,Success,Completed successfully
+nermin.karam74@gmail.com,nermin,karam Abdelghany abdel Rahman,Business Analytics,Success,Completed successfully
+nesmagamal352@gmail.com,Nesma,Gamal Abd El Rahman Mohamed,Business Analytics,Success,Completed successfully
+noorahan.karem@gmail.com,Nourhan,Karem Saeid Ibrahim,Business Analytics,Success,Completed successfully
+omniakhfagy.ok@gmail.com,omnia,adel mahmoud khfagy,Business Analytics,Success,Completed successfully
+Manoshaazaki@gmail.com,Omnia,Ali Abdou Mohamed,Business Analytics,Success,Completed successfully
+nogakhairy979@gmail.com,Nagiba,Mohamed Khairy,Business Analytics,Success,Completed successfully
+RABEE.HAMDY@GMAIL.COM,Rabee,Hamdy Mohamed,Business Analytics,Success,Completed successfully
+rami.beckman@gmail.com,Rami,abdel khalek abdelsalam,Business Analytics,Success,Completed successfully
+ramy.rateb@yahoo.com,Ramy,Mahmoud Abdelhakim Mahmoud Rateb,Business Analytics,Success,Completed successfully
+ramymuhammad20@gmail.com,Ramy,Muhammad Abdelfattah Abdelrahman,Business Analytics,Success,Completed successfully
+ramzy.egypt@gmail.com,Ramzy,Gomaa Eid,Business Analytics,Success,Completed successfully
+rana.osman31@gmail.com,Rana,Osman,Business Analytics,Success,Completed successfully
+eng.reda.emara1990@gmail.com,Reda,Abdelnaby Elraheem Emara,Business Analytics,Success,Completed successfully
+reemashaban27@gmail.com,Reem,Mohammed Ibrahim Shabaan,Business Analytics,Success,Completed successfully
+dentist.saeed@yahoo.com,Saeed,aly aly alkholy,Business Analytics,Success,Completed successfully
+safayasin2468@gmail.com,Safa,ahmed mohamed,Business Analytics,Success,Completed successfully
+saheraboghaly@gmail.com,Saher,sabry ghaly aboukalam,Business Analytics,Success,Completed successfully
+samehsalah77@gmail.com,sameh,salah elden abdelazim saber galal,Business Analytics,Success,Completed successfully
+Sara30204@gmail.com,sara,ahmed elsayed ali,Business Analytics,Success,Completed successfully
+sarabadawy39@gmail.com,Sara,Hassan Badawy,Business Analytics,Success,Completed successfully
+osmanhammad1991@gmail.com,Osman,ibrahim eldosoky ibrahim mohammed hammad,Business Analytics,Failed,"Failed after 3 attempts: Message: stale element reference: stale element not found
+  (Session info: chrome=147.0.7727.102); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#stale-element-reference-exception
+Stacktrace:
+0   chromedriver                        0x0000000104e5fabc cxxbridge1$str$ptr + 3192864
+1   chromedriver                        0x0000000104e57a8c cxxbridge1$str$ptr + 3160048
+2   chromedriver                        0x00000001049237c0 _RNvCs10ygTOo3JCa_7___rustc35___rust_no_alloc_shim_is_unstable_v2 + 75348
+3   chromedriver                        0x0000000104934f80 _RNvCs10ygTOo3JCa_7___rustc35___rust_no_alloc_shim_is_unstable_v2 + 146964
+4   chromedriver                        0x0000000104934030 _RNvCs10ygTOo3JCa_7___rustc35___rust_no_alloc_shim_is_unstable_v2 + 143044
+5   chromedriver                        0x000000010492a2a4 _RNvCs10ygTOo3JCa_7___rustc35___rust_no_alloc_shim_is_unstable_v2 + 102712
+6   chromedriver                        0x000000010492a3b0 _RNvCs10ygTOo3JCa_7___rustc35___rust_no_alloc_shim_is_unstable_v2 + 102980
+7   chromedriver                        0x0000000104928a2c _RNvCs10ygTOo3JCa_7___rustc35___rust_no_alloc_shim_is_unstable_v2 + 96448
+8   chromedriver                        0x000000010492bf28 _RNvCs10ygTOo3JCa_7___rustc35___rust_no_alloc_shim_is_unstable_v2 + 110012
+9   chromedriver                        0x00000001049ac3c4 _RNvCs10ygTOo3JCa_7___rustc35___rust_no_alloc_shim_is_unstable_v2 + 635480
+10  chromedriver                        0x00000001049ab448 _RNvCs10ygTOo3JCa_7___rustc35___rust_no_alloc_shim_is_unstable_v2 + 631516
+11  chromedriver                        0x0000000104960e50 _RNvCs10ygTOo3JCa_7___rustc35___rust_no_alloc_shim_is_unstable_v2 + 326884
+12  chromedriver                        0x0000000104e1d248 cxxbridge1$str$ptr + 2920364
+13  chromedriver                        0x0000000104e20a28 cxxbridge1$str$ptr + 2934668
+14  chromedriver                        0x0000000104e031fc cxxbridge1$str$ptr + 2813792
+15  chromedriver                        0x0000000104e212a8 cxxbridge1$str$ptr + 2936844
+16  chromedriver                        0x0000000104df4024 cxxbridge1$str$ptr + 2751880
+17  chromedriver                        0x0000000104e46988 cxxbridge1$str$ptr + 3090156
+18  chromedriver                        0x0000000104e46b04 cxxbridge1$str$ptr + 3090536
+19  chromedriver                        0x0000000104e576e4 cxxbridge1$str$ptr + 3159112
+20  libsystem_pthread.dylib             0x000000019b86bc08 _pthread_start + 136
+21  libsystem_pthread.dylib             0x000000019b866ba8 thread_start + 8
+"
+shalabe17@gmail.com,Sayed,Ahmed Sayed Mahmoud,Business Analytics,Success,Completed successfully
+sherefalabd@gmail.com,Sherif,Abdallah Awad,Business Analytics,Success,Completed successfully
+gamil.sherif@gmail.com,Sherif,Gamil Elsabbahi Zeidan,Business Analytics,Success,Completed successfully
+sraghachm@gmail.com,Sorag,hachm Abdelnaeem Hassan,Business Analytics,Success,Completed successfully
+shimaadowny@gmail.com,Shimaa,dweny aldeeb Mohamed,Business Analytics,Success,Completed successfully
+tamerelhadad090@gmail.com,Tamer,Gameel Elbauimy Mohamed,Business Analytics,Success,Completed successfully
+usamakhalil75@gmail.com,Usama,Sabry Kotb Khalil Hasham,Business Analytics,Success,Completed successfully
+waelmohammadeleshrif@gmail.com,WAEL,MOHAMMAD AHMED ABDALWHAB,Business Analytics,Success,Completed successfully
+wael.samuel@ceoss.org.eg,Wael,Samwael Karam Zakher,Business Analytics,Success,Completed successfully
+walaahassan.1982b@gmail.com,Walaa,hasan abdel aziz,Business Analytics,Success,Completed successfully
+walcma2007@gmail.com,WALEED,MOHAMED SAMIR FAHMI GHANDOUR,Business Analytics,Success,Completed successfully
+youssef_812002@yahoo.com,Youssef,Gamil Habib Makar,Business Analytics,Success,Completed successfully
+alitarekamer909@gmail.com,Ali,Tarek Ali Amer,Marketing Contemporary Analytic,Success,Completed successfully
+irefat2016@yahoo.com,Eslam,Ahmed Refaat,Marketing Contemporary Analytic,Success,Completed successfully
+heba.mostafa@te.eg,Heba,-Allah Mostafa Hassan Ahmed,Marketing Contemporary Analytic,Success,Completed successfully
+mariamhossam912@yahoo.com,Hossam,Ahmed Abdel Aziz Abdelghani,Marketing Contemporary Analytic,Success,Completed successfully
+khaledkandiel@gmail.com,Khaled,Mohamed Ibrahim Ahmed Kandiel,Marketing Contemporary Analytic,Success,Completed successfully
+Momensob@gmail.com,Momen,Sobhy,Marketing Contemporary Analytic,Success,Completed successfully
+tifaislike@gmail.com,Mostafa,El Sayed Mohamed Abozaid,Marketing Contemporary Analytic,Success,Completed successfully
+Eng.Kabdou@Gmail.com,Khaled,Mohamed Abdou Khames,Applied Business Analytics,Success,Completed successfully
+maheragwany336699@Gmail.com,Maher,Youssef Mohamed,Applied Business Analytics,Success,Completed successfully
+walid_syam@rocketmail.com,Walid,Ahmed Assad Ahmed Seyam,Applied Business Analytics,Success,Completed successfully
+Maram_darag@yahoo.com,Maram,Abbas sayed ahmed Darag,Applied Business Analytics,Success,Completed successfully
+mahroos.alobthani@gmail.com,Mahroos,Mubarak Mahroos Alobthany,Applied Business Analytics,Success,Completed successfully
+amanyelamir8@gmail.com,Amany,Elamir Mohamed,Applied Business Analytics,Success,Completed successfully
+sehamnasser391@gmail.com,Seham,Badr Eldin Nasser,Applied Business Analytics,Success,Completed successfully
+khalidfs5@gmail.com,KHALID,MOHAMMED ALI ALKABANY,Applied Business Analytics,Success,Completed successfully
+acc.bakr@gmail.com,Bakr,Abdallah Elsayed,Applied Business Analytics,Success,Completed successfully
+acc.bakr@gmail.com,Bakr,Abdallah Elsayed,AI for Business Decisioning,Success,Completed successfully
+Eng.Kabdou@Gmail.com,Khaled,Mohamed Abdou Khames,AI for Business Decisioning,Success,Completed successfully
+khalidfs5@gmail.com,KHALID,MOHAMMED ALI ALKABANY,AI for Business Decisioning,Success,Completed successfully
+maheragwany336699@Gmail.com,Maher,Youssef Mohamed,AI for Business Decisioning,Success,Completed successfully
+Maram_darag@yahoo.com,Maram,Abbas sayed ahmed Darag,AI for Business Decisioning,Success,Completed successfully
+walid_syam@rocketmail.com,Walid,Ahmed Assad Ahmed Seyam,AI for Business Decisioning,Success,Completed successfully

@@ -6,12 +6,18 @@ import os
 import shutil
 import zipfile
 import io
+import re
 import tempfile
 from datetime import datetime
 import pandas as pd
 
 # Import the class
 from sas_automation import SASFormAutomator
+from sheet_link_mapper import (
+    get_sheet_names,
+    read_all_sheets,
+    detect_columns,
+)
 
 st.set_page_config(page_title="SAS Automation Pro",
                    layout="wide", page_icon="🤖")
@@ -92,40 +98,248 @@ if 'stop_flag' not in st.session_state:
     st.session_state.stop_flag = False
 if 'browser_used' not in st.session_state:
     st.session_state.browser_used = None
+if 'sheet_links' not in st.session_state:
+    st.session_state.sheet_links = {}
+if 'preview_df' not in st.session_state:
+    st.session_state.preview_df = None
+if 'preview_read_warnings' not in st.session_state:
+    st.session_state.preview_read_warnings = []
 
-# File upload
-uploaded_file = st.file_uploader("📂 Upload Excel File", type=["xlsx"])
+# File upload (stable key keeps selection across reruns; only .xlsx / openpyxl)
+uploaded_file = st.file_uploader(
+    "📂 Upload Excel File (.xlsx)",
+    type=["xlsx"],
+    key="excel_workbook_upload",
+    help="استخدم ملف Excel بصيغة .xlsx فقط. Use .xlsx format only.",
+)
+st.caption(
+    "إذا الاختيار مش بيظهر بعد الرفع، جرّب تحديث الصفحة أو متصفح مختلف. "
+    "If the file does not stick after choosing it, refresh or try another browser."
+)
 
 if uploaded_file:
-    # Preview data
-    df = pd.read_excel(uploaded_file)
+    upload_id = f"{uploaded_file.name}_{uploaded_file.size}"
+    if st.session_state.get("upload_id") != upload_id:
+        st.session_state.upload_id = upload_id
+        st.session_state.upload_temp_dir = tempfile.mkdtemp()
+        st.session_state.excel_path = os.path.join(
+            st.session_state.upload_temp_dir, "data.xlsx"
+        )
+        for k in list(st.session_state.keys()):
+            if isinstance(k, str) and k.startswith("sheet_link_input_"):
+                del st.session_state[k]
+        st.session_state.sheet_links = {}
+        st.session_state.preview_df = None
+        st.session_state.preview_read_warnings = []
+
+    excel_path = st.session_state.excel_path
+    temp_dir = st.session_state.upload_temp_dir
+
+    # Always flush latest bytes to disk (fixes missing/stale file after reruns)
+    try:
+        with open(excel_path, "wb") as f:
+            f.write(uploaded_file.getvalue())
+    except OSError as e:
+        st.error(f"❌ Could not save uploaded file: {e}")
+        st.stop()
+
+    try:
+        sheet_names = get_sheet_names(excel_path)
+        for n in sheet_names:
+            st.session_state.sheet_links.setdefault(n, "")
+
+        df_preview = pd.read_excel(
+            excel_path, sheet_name=sheet_names[0], engine="openpyxl"
+        )
+    except Exception as e:
+        st.error(
+            "❌ تعذّر قراءة ملف Excel. تأكد أنه .xlsx وليس .xls، وأن الملف غير تالف أو محمي بكلمة مرور.\n\n"
+            f"Could not read the workbook: {e}"
+        )
+        st.stop()
 
     # Show file info
     col_info1, col_info2, col_info3 = st.columns(3)
     with col_info1:
-        st.metric("Total Students", len(df))
+        st.metric("Sheets", len(sheet_names))
     with col_info2:
-        st.metric("Columns", len(df.columns))
+        st.metric("Columns (first sheet)", len(df_preview.columns))
     with col_info3:
         st.metric("File Size", f"{uploaded_file.size / 1024:.1f} KB")
 
+    st.caption(f"Preview shows first sheet: **{sheet_names[0]}** ({len(df_preview)} rows).")
+
     # Data preview
     with st.expander("📊 Preview Data (First 10 rows)", expanded=True):
-        st.dataframe(df.head(10), use_container_width=True)
+        st.dataframe(df_preview.head(10), use_container_width=True)
 
-    # Validate required columns
-    required_cols = ['First Name', 'Last Name', 'Email', 'Certificate Link']
-    missing_cols = [col for col in required_cols if col not in df.columns]
+    col_map = detect_columns(
+        pd.read_excel(excel_path, sheet_name=sheet_names[0], engine="openpyxl")
+    )
+    has_name = "english_name" in col_map or "first_name" in col_map
+    has_email = "email" in col_map
+    if not has_name or not has_email:
+        st.warning(
+            f"⚠️ Could not detect name/email columns in '{sheet_names[0]}'. "
+            f"Detected keys: {list(col_map.keys())}. Will still show link inputs below."
+        )
 
-    if missing_cols:
-        st.error(f"❌ Missing required columns: {', '.join(missing_cols)}")
-        st.stop()
+    st.subheader("🔗 Form URL per sheet")
+    st.caption("Paste the SAS form URL for each sheet you want to process. Sheets with an empty URL are skipped.")
+    # Integer keys avoid Streamlit/widget issues when sheet names have special characters
+    for i, name in enumerate(sheet_names):
+        key = f"sheet_link_input_{i}"
+        st.session_state.sheet_links[name] = st.text_input(
+            f"Form URL — `{name}`",
+            value=st.session_state.sheet_links.get(name, ""),
+            key=key,
+        )
 
-    # Save file temporarily
-    temp_dir = tempfile.mkdtemp()
-    excel_path = os.path.join(temp_dir, "data.xlsx")
-    with open(excel_path, "wb") as f:
-        f.write(uploaded_file.getvalue())
+    # Same column order/labels as SASFormAutomator.read_excel / Excel template
+    _AUTOMATION_PREVIEW_COLS = [
+        "First Name",
+        "Last Name",
+        "Email",
+        "Certificate Name",
+        "Certificate Link",
+    ]
+
+    if st.button("🔍 Preview Final Data", key="btn_preview_final_data"):
+        configured = {
+            n: (st.session_state.sheet_links.get(n) or "").strip()
+            for n in sheet_names
+            if (st.session_state.sheet_links.get(n) or "").strip()
+        }
+        if not configured:
+            st.warning("Add at least one non-empty form URL for a sheet to preview.")
+        else:
+            try:
+                rows, read_warnings = read_all_sheets(excel_path, configured)
+                st.session_state.preview_read_warnings = list(read_warnings)
+                if rows:
+                    raw_df = pd.DataFrame(rows)
+                    st.session_state.preview_df = pd.DataFrame(
+                        {
+                            "First Name": raw_df["firstName"],
+                            "Last Name": raw_df["lastName"],
+                            "Email": raw_df["email"],
+                            "Certificate Name": raw_df["certificationName"],
+                            "Certificate Link": raw_df["certificationLink"],
+                        }
+                    )[_AUTOMATION_PREVIEW_COLS]
+                else:
+                    st.session_state.preview_df = pd.DataFrame(
+                        columns=_AUTOMATION_PREVIEW_COLS
+                    )
+                    first_sheet = next(iter(configured.keys()))
+                    detected_cols = pd.read_excel(
+                        excel_path, sheet_name=first_sheet, engine="openpyxl"
+                    ).columns.tolist()
+                    st.error(
+                        f"Preview loaded **0 rows**. Columns detected in sheet "
+                        f"**{first_sheet!r}**: `{detected_cols}`. "
+                        f"Expected headers like **English Name**, **Personal Email** / **Academic Email**. "
+                        f"See terminal/logs for `col_map` debug output."
+                    )
+                    if read_warnings:
+                        st.warning("Reader messages:\n\n" + "\n\n".join(read_warnings))
+            except Exception as e:
+                st.error(f"Could not build preview: {e}")
+
+    with st.expander("📋 Preview Final Data Before Start", expanded=True):
+        if st.session_state.preview_df is None:
+            st.caption(
+                "Click **🔍 Preview Final Data** to see merged rows as they will be sent to the forms."
+            )
+        else:
+            pdf = st.session_state.preview_df
+            total = len(pdf)
+            grouped = None
+            if total > 0:
+                grouped = {
+                    str(name): grp[_AUTOMATION_PREVIEW_COLS].copy()
+                    for name, grp in pdf.groupby("Certificate Name", sort=True)
+                }
+
+            if total == 0:
+                st.metric("Total rows", 0)
+                st.caption("No rows — check that linked sheets have the required columns.")
+                if st.session_state.get("preview_read_warnings"):
+                    for w in st.session_state.preview_read_warnings:
+                        st.caption(w)
+
+            missing_n = 0
+            if total > 0 and "Email" in pdf.columns:
+                missing_n = int((pdf["Email"] == "noemail@example.com").sum())
+            if missing_n:
+                st.markdown(
+                    f"⚠️ **Missing email:** {missing_n} row(s) use `noemail@example.com`"
+                )
+            elif total > 0:
+                st.markdown("No rows flagged with placeholder email.")
+
+            preview_xlsx_buf = io.BytesIO()
+            with pd.ExcelWriter(preview_xlsx_buf, engine="openpyxl") as writer:
+                if grouped:
+                    used_excel = set()
+
+                    def _writer_tab_name(raw_name: str) -> str:
+                        base = re.sub(
+                            r"[\[\]:*?/\\]", "_", str(raw_name).strip()
+                        )[:31] or "Sheet"
+                        wname = base
+                        n = 1
+                        while wname in used_excel:
+                            suffix = f"_{n}"
+                            wname = (base[: max(1, 31 - len(suffix))] + suffix)[:31]
+                            n += 1
+                        used_excel.add(wname)
+                        return wname
+
+                    for sheet_name, sheet_df in grouped.items():
+                        sheet_df.to_excel(
+                            writer,
+                            sheet_name=_writer_tab_name(sheet_name),
+                            index=False,
+                        )
+                else:
+                    pd.DataFrame(columns=_AUTOMATION_PREVIEW_COLS).to_excel(
+                        writer, sheet_name="Preview", index=False
+                    )
+            preview_xlsx_buf.seek(0)
+            st.download_button(
+                label="📥 Download Preview as Excel",
+                data=preview_xlsx_buf.getvalue(),
+                file_name=f"SAS_Preview_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="download_preview_xlsx",
+            )
+
+            if grouped:
+                per = pdf["Certificate Name"].value_counts().sort_index()
+                summary_cols = st.columns(1 + len(per))
+                with summary_cols[0]:
+                    st.metric("Total", total)
+                for idx, (sn, cnt) in enumerate(per.items(), start=1):
+                    with summary_cols[idx]:
+                        st.metric(str(sn), int(cnt))
+
+                tab_labels = list(grouped.keys())
+                tabs = st.tabs(tab_labels)
+
+                def _yellow_missing(row):
+                    if row["Email"] == "noemail@example.com":
+                        return ["background-color: #fff3cd"] * len(row)
+                    return [""] * len(row)
+
+                for tab, sheet_name in zip(tabs, tab_labels):
+                    with tab:
+                        sheet_df = grouped[sheet_name]
+                        st.metric("Students", len(sheet_df))
+                        styled = sheet_df.style.apply(_yellow_missing, axis=1)
+                        st.dataframe(
+                            styled, use_container_width=True, height=400
+                        )
 
     # Control buttons
     col1, col2, col3 = st.columns([2, 2, 1])
@@ -139,22 +353,35 @@ if uploaded_file:
         )
 
         if start_button:
+            sheet_link_snapshot = {
+                n: (st.session_state.sheet_links.get(n) or "").strip()
+                for n in sheet_names
+                if (st.session_state.sheet_links.get(n) or "").strip()
+            }
+            if not sheet_link_snapshot:
+                st.error("❌ Add at least one form URL for a sheet before starting.")
+                st.stop()
+
             st.session_state.running = True
             st.session_state.stop_flag = False
             st.session_state.logs = ["🚀 Starting automation..."]
             st.session_state.results = []
             st.session_state.browser_used = None
+            st.session_state.temp_dir = temp_dir
 
             # Create queues for thread communication
             log_queue = queue.Queue()
             result_queue = queue.Queue()
+
+            excel_for_run = excel_path
+            snapshot_for_run = dict(sheet_link_snapshot)
 
             def run_automation():
                 try:
                     # Create checkpoint directory in temp folder
                     checkpoint_dir = os.path.join(temp_dir, "checkpoints")
                     automator = SASFormAutomator(
-                        "", excel_path, 
+                        "", excel_for_run,
                         browser_choice=browser_choice,
                         checkpoint_dir=checkpoint_dir,
                         restart_browser_interval=100,  # Restart browser every 100 forms
@@ -164,7 +391,12 @@ if uploaded_file:
                     # Store which browser was used
                     result_queue.put(('browser', automator.browser_name))
 
-                    students = automator.read_excel()
+                    all_students, sheet_read_warnings = read_all_sheets(
+                        excel_for_run, snapshot_for_run
+                    )
+                    for w in sheet_read_warnings:
+                        log_queue.put(w)
+                    students = all_students
                     total_students = len(students)
                     
                     # Stop flag for parallel processing
@@ -221,7 +453,9 @@ if uploaded_file:
                                 pass
 
                             log_queue.put(
-                                f"[{time.strftime('%H:%M:%S')}] 🔄 Processing {i}/{total_students}: {student['firstName']} {student['lastName']}")
+                                f"[{time.strftime('%H:%M:%S')}] 🔄 Processing {i}/{total_students}: "
+                                f"[{student.get('certificationName', '')}] {student['firstName']} {student['lastName']}"
+                            )
 
                             # Restart browser if needed (for large datasets)
                             automator.restart_browser_if_needed()
@@ -336,9 +570,9 @@ if uploaded_file:
             if len(st.session_state.logs) > 500:
                 st.info("💡 **Memory Optimization**: Logs are limited to last 100 entries. Full logs are saved in checkpoint files.")
 
-    # Auto-refresh while running
+    # Auto-refresh while running (slightly slower refresh = less CPU from reruns)
     if st.session_state.running:
-        time.sleep(2)
+        time.sleep(3)
         st.rerun()
 
     # After completion
@@ -375,6 +609,19 @@ if uploaded_file:
 
         styled_df = results_df.style.map(color_status, subset=['status'])
         st.dataframe(styled_df, use_container_width=True)
+
+        if "certificationName" in results_df.columns:
+            st.subheader("📑 Results by Sheet")
+            by_sheet = (
+                results_df.groupby("certificationName", dropna=False)
+                .agg(
+                    total=("status", "count"),
+                    success=("status", lambda s: int((s == "Success").sum())),
+                )
+                .reset_index()
+            )
+            by_sheet["failed"] = by_sheet["total"] - by_sheet["success"]
+            st.dataframe(by_sheet, use_container_width=True)
 
         # Create ZIP file
         zip_buffer = io.BytesIO()
@@ -428,12 +675,24 @@ if uploaded_file:
 
         with col_dl2:
             if st.button("🔄 New Session", use_container_width=True):
-                if hasattr(st.session_state, 'temp_dir') and os.path.exists(st.session_state.temp_dir):
-                    try:
-                        shutil.rmtree(st.session_state.temp_dir)
-                    except:
-                        pass
-                for key in ['logs', 'results', 'running', 'stop_flag', 'log_queue', 'result_queue', 'temp_dir', 'browser_used']:
+                for path in {
+                    st.session_state.get("temp_dir"),
+                    st.session_state.get("upload_temp_dir"),
+                }:
+                    if path and os.path.exists(path):
+                        try:
+                            shutil.rmtree(path)
+                        except Exception:
+                            pass
+                for key in list(st.session_state.keys()):
+                    if isinstance(key, str) and key.startswith("sheet_link_input_"):
+                        del st.session_state[key]
+                for key in [
+                    'logs', 'results', 'running', 'stop_flag', 'log_queue',
+                    'result_queue', 'temp_dir', 'browser_used', 'sheet_links',
+                    'upload_id', 'excel_path', 'upload_temp_dir', 'stop_flag_event',
+                    'preview_df', 'preview_read_warnings',
+                ]:
                     if key in st.session_state:
                         del st.session_state[key]
                 st.success("✅ Session cleared! Upload a new file to start")
@@ -453,8 +712,8 @@ else:
         | **First Name** | Student's first name | ✅ Yes |
         | **Last Name** | Student's last name | ✅ Yes |
         | **Email** | Student's email address | ✅ Yes |
-        | **Certificate Link** | SAS form URL | ✅ Yes |
-        | **Certificate Name** | Name of certification | ⚪ Optional |
+        | **Form URL** | Pasted per sheet in the app (not an Excel column) | ✅ Yes |
+        | **Certificate Name** | Optional column per sheet | ⚪ Optional |
         | **Badge Opt-In** | Yes/No (defaults to Yes if empty) | ⚪ Optional |
         
         ### Features:
@@ -464,6 +723,7 @@ else:
         - ✅ **Error screenshots**: Captures errors for debugging
         - ✅ **Bulk download**: Get all results, logs, and screenshots in one ZIP file
         - ✅ **Resume capability**: Can stop and restart anytime
+        - ✅ **Multi-sheet workbooks**: One form URL per sheet; rows use that sheet’s URL
         
         ### Browser Priority (Auto Mode):
         1. **Chrome** (recommended)
