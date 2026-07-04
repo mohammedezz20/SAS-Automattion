@@ -52,10 +52,37 @@ def dataframe_has_student_columns(df):
     return bool(m.get("firstName") and m.get("lastName") and m.get("email"))
 
 
+def _normalize_student_id(raw) -> str:
+    """Strip and normalize Excel numeric IDs (e.g. 2242029272.0 -> '2242029272')."""
+    if raw is None or (isinstance(raw, float) and pd.isna(raw)):
+        return ""
+    if isinstance(raw, float) and raw.is_integer():
+        return str(int(raw))
+    if isinstance(raw, int):
+        return str(raw)
+    text = str(raw).strip()
+    if not text or text.lower() in ("nan", "none"):
+        return ""
+    if text.endswith(".0"):
+        head = text[:-2]
+        if head.isdigit():
+            return head
+    return text
+
+
+def _build_display_name(first_name: str, last_name: str) -> str:
+    """Full name for certificates; omit placeholder last names like '.'."""
+    first = str(first_name).strip()
+    last = str(last_name).strip()
+    if last in (".", ""):
+        return first
+    return f"{first} {last}".strip()
+
+
 def detect_columns(df):
     """
     Auto-detect name/email columns for UI hints and read_sheet_students.
-    Keys may include: english_name, first_name, last_name, email, badge.
+    Keys may include: english_name, first_name, last_name, email, student_id, badge.
     Prefers Personal Email, then any other email column (e.g. Academic Email).
     """
     col_map = {}
@@ -88,6 +115,32 @@ def detect_columns(df):
             col_lower = str(col).strip().lower()
             if "email" in col_lower:
                 col_map["email"] = col
+                break
+
+    # Student ID — after email so "email id" / "Academic Email" are not matched
+    _student_id_tier1 = (
+        ("student id", "studentid"),
+        ("academic id", "academicid"),
+        ("student number", "studentnumber"),
+        ("stud id", "studid"),
+    )
+    for col in columns:
+        col_lower = str(col).strip().lower()
+        if "email" in col_lower:
+            continue
+        for phrase, exact in _student_id_tier1:
+            if phrase in col_lower or col_lower == exact:
+                col_map["student_id"] = col
+                break
+        if "student_id" in col_map:
+            break
+    if "student_id" not in col_map:
+        for col in columns:
+            col_lower = str(col).strip().lower()
+            if "email" in col_lower:
+                continue
+            if col_lower == "id":
+                col_map["student_id"] = col
                 break
 
     for col in columns:
@@ -157,11 +210,13 @@ def read_sheet_students(excel_file_path: str, sheet_name: str, form_link: str):
         if pd.Series(row).isna().all():
             continue
 
+        display_name = ""
         if "english_name" in col_map:
             raw_name = str(row.get(col_map["english_name"], "")).strip()
             if not raw_name or raw_name.lower() in ("nan", "none", ""):
                 continue
             first_name, last_name = split_english_name(raw_name)
+            display_name = raw_name
         else:
             first_name = str(row.get(col_map["first_name"], "Unknown")).strip()
             last_col = col_map.get("last_name")
@@ -170,6 +225,11 @@ def read_sheet_students(excel_file_path: str, sheet_name: str, form_link: str):
                 if last_col
                 else "User"
             )
+            display_name = _build_display_name(first_name, last_name)
+
+        student_id = ""
+        if "student_id" in col_map:
+            student_id = _normalize_student_id(row.get(col_map["student_id"]))
 
         email_raw = row.get(col_map["email"], "")
         email = (
@@ -194,6 +254,8 @@ def read_sheet_students(excel_file_path: str, sheet_name: str, form_link: str):
                 "firstName": first_name,
                 "lastName": last_name,
                 "email": email,
+                "studentId": student_id,
+                "displayName": display_name,
                 "certificationName": sheet_name,
                 "certificationLink": form_link,
                 "badgeOptIn": badge_final,
