@@ -27,6 +27,124 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 
 
+def _wait_for_page_ready(driver, timeout=15):
+    WebDriverWait(driver, timeout).until(
+        lambda d: d.execute_script("return document.readyState") == "complete"
+    )
+
+
+def _locate_text_fields(driver, wait):
+    """Locate first/last/email fields (Angular Material or legacy form)."""
+    try:
+        first = wait.until(
+            EC.visibility_of_element_located(
+                (By.CSS_SELECTOR, "input[formcontrolname='FIRST_NAME_COURSERA']")
+            )
+        )
+        last = wait.until(
+            EC.visibility_of_element_located(
+                (By.CSS_SELECTOR, "input[formcontrolname='LAST_NAME_COURSERA']")
+            )
+        )
+        email = wait.until(
+            EC.visibility_of_element_located(
+                (By.CSS_SELECTOR, "input[formcontrolname='EMAIL_COURSERA']")
+            )
+        )
+        return first, last, email
+    except Exception:
+        inputs = wait.until(
+            EC.presence_of_all_elements_located((By.XPATH, "//input[@type='text']"))
+        )
+        if len(inputs) < 3:
+            raise Exception(
+                f"Expected at least 3 text fields, found: {len(inputs)}"
+            )
+        for field in inputs[:3]:
+            wait.until(EC.visibility_of(field))
+        return inputs[0], inputs[1], inputs[2]
+
+
+def _fill_text_fields(first, last, email, student_data):
+    first.clear()
+    first.send_keys(student_data["firstName"])
+    last.clear()
+    last.send_keys(student_data["lastName"])
+    email.clear()
+    email.send_keys(student_data["email"])
+
+
+def _badge_radio_selected(driver, badge_opt_in):
+    value = "Y" if badge_opt_in == "yes" else "N"
+    try:
+        radio = driver.find_element(
+            By.XPATH, f"//input[@type='radio' and @value='{value}']"
+        )
+        return radio.is_selected()
+    except Exception:
+        return False
+
+
+def _select_badge_option(driver, wait, badge_opt_in):
+    """Select Yes/No badge opt-in (Angular Material Y/N or legacy Y#1/N#2)."""
+    choice = "Yes" if badge_opt_in == "yes" else "No"
+    legacy_value = "Y#1" if badge_opt_in == "yes" else "N#2"
+    value = "Y" if badge_opt_in == "yes" else "N"
+
+    radio = wait.until(
+        EC.presence_of_element_located(
+            (By.XPATH, f"//input[@type='radio' and (@value='{value}' or contains(@value, '{legacy_value}'))]")
+        )
+    )
+    radio_id = radio.get_attribute("id")
+
+    strategies = []
+    if radio_id:
+        strategies.append((By.CSS_SELECTOR, f"label[for='{radio_id}']"))
+    label_text = "Yes" if badge_opt_in == "yes" else "No"
+    strategies.extend([
+        (By.XPATH, f"//mat-radio-button[.//input[@value='{value}']]//div[contains(@class,'mat-mdc-radio-touch-target')]"),
+        (By.XPATH, f"//mat-radio-button[.//label[normalize-space()='{label_text}']]//label"),
+        (By.XPATH, f"//mat-radio-button[.//label[normalize-space()='{label_text}']]"),
+        (By.XPATH, f"//input[@type='radio' and contains(@value, '{legacy_value}')]"),
+    ])
+
+    last_error = None
+    for by, selector in strategies:
+        try:
+            element = wait.until(EC.presence_of_element_located((by, selector)))
+            driver.execute_script(
+                "arguments[0].scrollIntoView({block: 'center', behavior: 'instant'});",
+                element,
+            )
+            try:
+                element.click()
+            except Exception:
+                driver.execute_script("arguments[0].click();", element)
+            time.sleep(0.25)
+            if _badge_radio_selected(driver, badge_opt_in):
+                return choice
+        except Exception as exc:
+            last_error = exc
+
+    driver.execute_script(
+        """
+        const el = arguments[0];
+        el.focus();
+        el.click();
+        if (!el.checked) { el.checked = true; }
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        """,
+        radio,
+    )
+    time.sleep(0.25)
+    if _badge_radio_selected(driver, badge_opt_in):
+        return choice
+
+    raise Exception(f"Could not select badge option {choice}: {last_error}")
+
+
 class SASFormAutomator:
     def __init__(self, form_url, excel_file, browser_choice='auto', checkpoint_dir=None, restart_browser_interval=100, headless=False):
         """
@@ -391,52 +509,20 @@ class SASFormAutomator:
 
             # Navigate to page
             self.driver.get(student_data['certificationLink'])
-            
-            # Smart wait for page load - wait for document ready state
-            WebDriverWait(self.driver, 10).until(
-                lambda d: d.execute_script("return document.readyState") == "complete"
-            )
+            _wait_for_page_ready(self.driver)
+            loaded_form_url = self.driver.current_url
 
-            # Wait for fields to be present and visible (more reliable)
-            wait = WebDriverWait(self.driver, 20)
-            inputs = wait.until(
-                EC.presence_of_all_elements_located((By.XPATH, "//input[@type='text']"))
-            )
-            
-            if len(inputs) < 3:
-                raise Exception(
-                    f"Expected at least 3 text fields, found: {len(inputs)}")
+            wait = WebDriverWait(self.driver, 30)
+            first, last, email = _locate_text_fields(self.driver, wait)
+            _fill_text_fields(first, last, email, student_data)
 
-            # Wait for inputs to be visible and interactable
-            wait.until(EC.visibility_of(inputs[0]))
-            wait.until(EC.visibility_of(inputs[1]))
-            wait.until(EC.visibility_of(inputs[2]))
-
-            # Fill text fields with optimized clearing
-            inputs[0].clear()
-            inputs[0].send_keys(student_data['firstName'])
-            
-            inputs[1].clear()
-            inputs[1].send_keys(student_data['lastName'])
-            
-            inputs[2].clear()
-            inputs[2].send_keys(student_data['email'])
-
-            # Select Badge Opt-In intelligently
-            target = "Y#1" if student_data['badgeOptIn'] == "yes" else "N#2"
-            choice = "Yes" if target == "Y#1" else "No"
-
-            # Wait for radio button with shorter timeout
-            radio = wait.until(
-                EC.element_to_be_clickable(
-                    (By.XPATH, f"//input[@type='radio' and contains(@value, '{target}')]"))
-            )
-            # Scroll and click in one operation
-            self.driver.execute_script(
-                "arguments[0].scrollIntoView({block: 'center', behavior: 'instant'}); arguments[0].click();", 
-                radio
+            choice = _select_badge_option(
+                self.driver, wait, student_data["badgeOptIn"]
             )
             self.log(f"Selected badge option: {choice}")
+
+            if not _badge_radio_selected(self.driver, student_data["badgeOptIn"]):
+                raise Exception(f"Badge option {choice} was not selected before submit")
 
             # Wait for submit button and click
             submit_btn = wait.until(
@@ -449,15 +535,12 @@ class SASFormAutomator:
             # Wait for submission confirmation - SAS redirects to a "search" page that shows
             # "No event found" / "Course Evaluation Search Facility is not in service"
             # even when submission succeeded. Treat that page as success.
-            form_url = student_data["certificationLink"]
-
             def _is_submission_done(driver):
                 try:
                     url = driver.current_url or ""
-                    # Cheap checks first (avoid full page_source on every poll)
                     if "evals/app/search" in url or "search?message=" in url:
                         return True
-                    if url != form_url:
+                    if loaded_form_url and url != loaded_form_url:
                         return True
                     body = (driver.page_source or "").lower()
                     return any(
@@ -476,14 +559,11 @@ class SASFormAutomator:
                 WebDriverWait(self.driver, 12).until(_is_submission_done)
                 self.log("Submission confirmed (redirect or success page detected)")
             except Exception:
-                # Timeout - still treat as success if we see the known "success" page
-                try:
-                    if _is_submission_done(self.driver):
-                        self.log("Submission confirmed after wait")
-                    else:
-                        time.sleep(2)
-                except Exception:
-                    time.sleep(1)
+                if _is_submission_done(self.driver):
+                    self.log("Submission confirmed after wait")
+                elif _badge_radio_selected(self.driver, student_data["badgeOptIn"]) is False and "badging" in (self.driver.current_url or ""):
+                    raise Exception("Form still open after submit — badge selection or validation may have failed")
+                time.sleep(2)
 
             self.log("Form submitted successfully!", "SUCCESS")
 

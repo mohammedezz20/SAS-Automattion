@@ -3,6 +3,24 @@
 
 import pandas as pd
 
+DEFAULT_SHEET_FORM_URLS = {
+    "Business Analytics": "http://go.sas.com/evals?serviceid=AAMBFSASBA25",
+    "Contemporary Marketing Analytic": "http://go.sas.com/evals?serviceid=TAAMBFSASCMA25",
+    "Applied Business Analytics": "http://go.sas.com/evals?serviceid=AAMBFSASABA25",
+    "AI for Business Decisioning": "http://go.sas.com/evals?serviceid=AAMBFSASAIBD25",
+}
+
+
+def default_form_url_for_sheet(sheet_name: str) -> str:
+    """Default SAS form URL for a known sheet name (editable in the UI)."""
+    name = str(sheet_name).strip()
+    if not name:
+        return ""
+    if name in DEFAULT_SHEET_FORM_URLS:
+        return DEFAULT_SHEET_FORM_URLS[name]
+    lower_map = {k.lower(): v for k, v in DEFAULT_SHEET_FORM_URLS.items()}
+    return lower_map.get(name.lower(), "")
+
 
 def _build_column_map(df):
     """Map logical fields to actual column names (same rules as SASFormAutomator.read_excel)."""
@@ -52,7 +70,7 @@ def detect_columns(df):
             col_map["english_name"] = col
             break
 
-    if "english_name" not in col_map:
+    if "english_name"  not in col_map:
         for col in columns:
             col_lower = str(col).strip().lower()
             if "first" in col_lower and "name" in col_lower:

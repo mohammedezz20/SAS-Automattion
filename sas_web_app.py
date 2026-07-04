@@ -17,6 +17,7 @@ from sheet_link_mapper import (
     get_sheet_names,
     read_all_sheets,
     detect_columns,
+    default_form_url_for_sheet,
 )
 
 st.set_page_config(page_title="SAS Automation Pro",
@@ -146,7 +147,7 @@ if uploaded_file:
     try:
         sheet_names = get_sheet_names(excel_path)
         for n in sheet_names:
-            st.session_state.sheet_links.setdefault(n, "")
+            st.session_state.sheet_links.setdefault(n, default_form_url_for_sheet(n))
 
         df_preview = pd.read_excel(
             excel_path, sheet_name=sheet_names[0], engine="openpyxl"
@@ -185,7 +186,10 @@ if uploaded_file:
         )
 
     st.subheader("🔗 Form URL per sheet")
-    st.caption("Paste the SAS form URL for each sheet you want to process. Sheets with an empty URL are skipped.")
+    st.caption(
+        "Default SAS form URLs are pre-filled for known sheets. Edit any URL before running. "
+        "Sheets with an empty URL are skipped."
+    )
     # Integer keys avoid Streamlit/widget issues when sheet names have special characters
     for i, name in enumerate(sheet_names):
         key = f"sheet_link_input_{i}"
